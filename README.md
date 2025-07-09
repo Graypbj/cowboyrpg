@@ -111,6 +111,3 @@ Contributions are welcome! Submit issues or pull requests to help improve the Co
 
 MIT License. See [`LICENSE`](../LICENSE) for more information.
 
----
-
-Let me know if you'd like the server README too or if you’re planning to publish it to GitHub — I can adjust for that context.
