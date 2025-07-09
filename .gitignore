@@ -1,0 +1,5 @@
+client.html
+game/
+game/battle.go
+game/party.go
+game/server.go
