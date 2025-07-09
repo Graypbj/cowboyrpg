@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/websocket"
+	"github.com/manifoldco/promptui"
 )
 
 const serverURL = "ws://localhost:8080/ws"
@@ -72,12 +73,21 @@ func main() {
 			fmt.Println(msg["message"])
 		case "game_start", "next_turn":
 			fmt.Println(msg["message"])
-			fmt.Print("Choose move (attack, heal, hide): ")
-			move, _ := reader.ReadString('\n')
-			move = strings.TrimSpace(move)
+
+			prompt := promptui.Select{
+				Label: "Choose your move",
+				Items: []string{"attack", "heal", "hide"},
+			}
+
+			_, result, err := prompt.Run()
+			if err != nil {
+				log.Println("Prompt failed:", err)
+				return
+			}
+
 			conn.WriteJSON(map[string]any{
 				"type": "choose_move",
-				"move": move,
+				"move": result,
 			})
 		case "game_update":
 			fmt.Printf("You: HP=%v, Move=%v\n", msg["you"].(map[string]any)["hp"], msg["you"].(map[string]any)["move"])
