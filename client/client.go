@@ -2,10 +2,11 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/gorilla/websocket"
@@ -14,10 +15,13 @@ import (
 
 const serverURL = "ws://cowboyrpg.duckdns.org:8080/ws"
 
+var playerName string
+var hasMadeMove bool
+
 func main() {
 	conn, _, err := websocket.DefaultDialer.Dial(serverURL, nil)
 	if err != nil {
-		log.Fatalf("Connection error: %v", err)
+		log.Fatalf("Dial error: %v", err)
 	}
 	defer conn.Close()
 
@@ -31,25 +35,22 @@ func main() {
 
 	fmt.Print("Enter your name: ")
 	name, _ := reader.ReadString('\n')
-	name = strings.TrimSpace(name)
+	playerName = strings.TrimSpace(name)
 
 	if choice == "1" {
 		conn.WriteJSON(map[string]any{
 			"type": "create_party",
-			"name": name,
+			"name": playerName,
 		})
-	} else if choice == "2" {
+	} else {
 		fmt.Print("Enter Party ID to join: ")
 		partyID, _ := reader.ReadString('\n')
 		partyID = strings.TrimSpace(partyID)
 		conn.WriteJSON(map[string]any{
 			"type":     "join_party",
 			"party_id": partyID,
-			"name":     name,
+			"name":     playerName,
 		})
-	} else {
-		fmt.Println("Invalid option")
-		return
 	}
 
 	for {
@@ -60,15 +61,32 @@ func main() {
 		}
 
 		switch msg["type"] {
-		case "party_created", "party_joined", "game_update", "game_over":
+		case "party_created", "party_joined":
 			fmt.Println(msg["message"])
-			if msg["type"] == "game_over" {
-				fmt.Println("Game Over:", msg["result"])
-				return
+		case "game_update":
+			clearScreen()
+			fmt.Println(msg["message"])
+
+			if you, ok := msg["you"].(map[string]any); ok {
+				fmt.Printf("%s HP: %.0f\n", playerName, you["hp"].(float64))
 			}
+			if enemy, ok := msg["enemy"].(map[string]any); ok {
+				enemyMove := enemy["move"]
+				enemyHP := enemy["hp"].(float64)
+				fmt.Printf("Enemy Move: %s\nEnemy HP: %.0f\n", enemyMove, enemyHP)
+			}
+			fmt.Println("Choose your next move")
+			hasMadeMove = false
 		case "game_start", "next_turn":
 			fmt.Println(msg["message"])
-			selectMove(conn)
+			if !hasMadeMove {
+				selectMove(conn)
+				hasMadeMove = true
+			}
+		case "game_over":
+			clearScreen()
+			fmt.Println("Game Over:", msg["result"])
+			return
 		case "error":
 			fmt.Println("Error:", msg["error"])
 		}
@@ -80,7 +98,6 @@ func selectMove(conn *websocket.Conn) {
 		Label: "Choose your action",
 		Items: []string{"attack", "heal", "hide"},
 	}
-
 	_, move, err := prompt.Run()
 	if err != nil {
 		log.Println("Prompt failed:", err)
@@ -89,17 +106,23 @@ func selectMove(conn *websocket.Conn) {
 
 	moveData := map[string]string{}
 
-	switch move {
-	case "attack":
+	if move == "attack" {
 		weaponPrompt := promptui.Select{
 			Label: "Choose weapon",
 			Items: []string{"revolver", "shotgun", "rifle"},
 		}
 		_, weapon, _ := weaponPrompt.Run()
 		moveData["weapon"] = weapon
-	case "hide":
+
 		coverPrompt := promptui.Select{
-			Label: "Choose cover",
+			Label: "Choose where to hide",
+			Items: []string{"nothing", "barrel", "trough"},
+		}
+		_, cover, _ := coverPrompt.Run()
+		moveData["cover"] = cover
+	} else if move == "hide" {
+		coverPrompt := promptui.Select{
+			Label: "Choose where to hide",
 			Items: []string{"nothing", "barrel", "trough"},
 		}
 		_, cover, _ := coverPrompt.Run()
@@ -114,4 +137,13 @@ func selectMove(conn *websocket.Conn) {
 	if err != nil {
 		log.Println("Write error:", err)
 	}
+}
+
+func clearScreen() {
+	cmd := exec.Command("clear")
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("cmd", "/c", "cls")
+	}
+	cmd.Stdout = os.Stdout
+	cmd.Run()
 }
