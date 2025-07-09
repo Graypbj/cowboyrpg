@@ -2,70 +2,68 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
-	"strings"
-	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
-type webSocketHandler struct {
-	upgrader websocket.Upgrader
+const port = ":8080"
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
 }
 
-func (wsh webSocketHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	c, err := wsh.upgrader.Upgrade(w, r, nil)
+func handleConnections(w http.ResponseWriter, r *http.Request) {
+	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("error %s when upgrading connection to websocket", err)
+		fmt.Println(err)
 		return
 	}
-	defer func() {
-		log.Println("closing connection")
-		c.Close()
-	}()
+	defer ws.Close()
+
+	playerID := uuid.New().String()
+	player := &Player{
+		ID:   playerID,
+		Conn: ws,
+		HP:   100,
+	}
+	playersMu.Lock()
+	players[playerID] = player
+	playersMu.Unlock()
+
 	for {
-		mt, message, err := c.ReadMessage()
-		if err != nil {
-			log.Printf("Error %s when reading message from client", err)
-			return
+		var msg map[string]any
+		if err := ws.ReadJSON(&msg); err != nil {
+			fmt.Printf("read error: %v", err)
+			break
 		}
-		if mt == websocket.BinaryMessage {
-			err = c.WriteMessage(websocket.TextMessage, []byte("server doesn't support binary messages"))
-			if err != nil {
-				log.Printf("Error %s when sending message to client", err)
-			}
-			return
-		}
-		log.Printf("Receive message %s", string(message))
-		if strings.Trim(string(message), "\n") != "start" {
-			err = c.WriteMessage(websocket.TextMessage, []byte("You did not say the magic word"))
-			if err != nil {
-				log.Printf("Error %s when sending message to client", err)
-				return
-			}
-			continue
-		}
-		log.Println("start responding to client...")
-		i := 1
-		for {
-			response := fmt.Sprintf("Notification %d", i)
-			err = c.WriteMessage(websocket.TextMessage, []byte(response))
-			if err != nil {
-				log.Printf("Error %s when sending message to client", err)
-				return
-			}
-			i = i + 1
-			time.Sleep(2 * time.Second)
+
+		fmt.Println(msg)
+
+		switch msg["type"] {
+		case "create_party":
+			handleCreateParty(player, msg)
+		case "join_party":
+			handleJoinParty(player, msg)
+		case "choose_move":
+			handleChooseMove(player, msg)
+		default:
+			ws.WriteJSON(map[string]any{
+				"type":  "error",
+				"error": fmt.Sprintf("Unknown message type: %s", msg["type"]),
+			})
 		}
 	}
 }
 
 func main() {
-	webSocketHandler := webSocketHandler{
-		upgrader: websocket.Upgrader{},
+	http.HandleFunc("/ws", handleConnections)
+	fmt.Printf("Server started on %s\n", port)
+	err := http.ListenAndServe(port, nil)
+	if err != nil {
+		panic("ListenAndServer: " + err.Error())
 	}
-	http.Handle("/", webSocketHandler)
-	log.Print("Starting server...")
-	log.Fatal(http.ListenAndServe("localhost:8080", nil))
 }
