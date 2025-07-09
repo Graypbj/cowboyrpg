@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
@@ -20,6 +20,9 @@ type Player struct {
 	HasMoved bool
 }
 
+const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+const codeLength = 4
+
 type Party struct {
 	ID      string
 	Players [2]*Player
@@ -33,6 +36,23 @@ var (
 	parties   = make(map[string]*Party)
 )
 
+func generatePartycode() string {
+	code := make([]byte, codeLength)
+	for i := range code {
+		code[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(code)
+}
+
+func generateUniquePartyCode(existing map[string]*Party) string {
+	for {
+		code := generatePartycode()
+		if _, exists := existing[code]; !exists {
+			return code
+		}
+	}
+}
+
 func handleCreateParty(player *Player, msg map[string]any) {
 	name, ok := msg["name"].(string)
 	if !ok {
@@ -43,7 +63,10 @@ func handleCreateParty(player *Player, msg map[string]any) {
 		return
 	}
 
-	partyID := uuid.New().String()
+	partiesMu.Lock()
+	partyID := generateUniquePartyCode(parties)
+	partiesMu.Unlock()
+
 	party := &Party{ID: partyID}
 	player.Name = name
 	player.PartyID = partyID

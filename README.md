@@ -29,7 +29,7 @@ This is the official Go CLI client for the **Cowboy RPG** WebSocket-based multip
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/cowboy-rpg.git
+git clone https://github.com/Graypbj/cowboyrpg.git
 cd cowboy-rpg/client
 ```
 
