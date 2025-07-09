@@ -12,7 +12,7 @@ import (
 	"github.com/manifoldco/promptui"
 )
 
-const serverURL = "ws://localhost:8080/ws"
+const serverURL = "ws://cowboyrpg.duckdns.org:8080/ws"
 
 func main() {
 	conn, _, err := websocket.DefaultDialer.Dial(serverURL, nil)
