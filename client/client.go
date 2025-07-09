@@ -13,7 +13,7 @@ import (
 	"github.com/manifoldco/promptui"
 )
 
-const serverURL = "ws://cowboyrpg.duckdns.org:8080/ws"
+const serverURL = "wss://50f94bcdc1ec.ngrok-free.app/ws"
 
 var playerName string
 var hasMadeMove bool
