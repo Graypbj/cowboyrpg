@@ -75,7 +75,6 @@ func main() {
 				enemyHP := enemy["hp"].(float64)
 				fmt.Printf("Enemy Move: %s\nEnemy HP: %.0f\n", enemyMove, enemyHP)
 			}
-			fmt.Println("Choose your next move")
 			hasMadeMove = false
 		case "game_start", "next_turn":
 			fmt.Println(msg["message"])

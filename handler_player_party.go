@@ -80,7 +80,7 @@ func handleCreateParty(player *Player, msg map[string]any) {
 	player.Conn.WriteJSON(map[string]any{
 		"type":     "party_created",
 		"party_id": partyID,
-		"message":  fmt.Sprintf("Party %s created. Waiting for another player...", partyID),
+		"message":  fmt.Sprintf("Party %s created.\nWaiting for another player...", partyID),
 	})
 }
 
