@@ -230,6 +230,8 @@ func calculateDamage(attacker *Player, defender *Player) int {
 	weapon := attacker.MoveData["weapon"]
 	hiding := defender.MoveData["cover"]
 
+	fmt.Println(weapon)
+	fmt.Println(hiding)
 	// base damage
 	var base int
 	switch weapon {
@@ -241,6 +243,7 @@ func calculateDamage(attacker *Player, defender *Player) int {
 		base = 25
 	default:
 		base = 10
+		fmt.Println("Why")
 	}
 
 	// cover modifier
