@@ -65,17 +65,14 @@ func handleCreateParty(player *Player, msg map[string]any) {
 
 	partiesMu.Lock()
 	partyID := generateUniquePartyCode(parties)
+	party := &Party{ID: partyID}
+	parties[partyID] = party
 	partiesMu.Unlock()
 
-	party := &Party{ID: partyID}
 	player.Name = name
 	player.PartyID = partyID
 	player.HP = 100
 	party.Players[0] = player
-
-	partiesMu.Lock()
-	parties[partyID] = party
-	partiesMu.Unlock()
 
 	player.Conn.WriteJSON(map[string]any{
 		"type":     "party_created",

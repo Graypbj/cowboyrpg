@@ -26,18 +26,21 @@ func main() {
 	defer conn.Close()
 
 	fmt.Println("Welcome to Cowboy RPG")
-	fmt.Println("1. Create Party")
-	fmt.Println("2. Join Party")
-	fmt.Print("Choose an option: ")
-	reader := bufio.NewReader(os.Stdin)
-	choice, _ := reader.ReadString('\n')
-	choice = strings.TrimSpace(choice)
+	prompt := promptui.Select{
+		Label: "Select an option",
+		Items: []string{"Create Party", "Join Party"},
+	}
+	_, choice, err := prompt.Run()
+	if err != nil {
+		log.Fatalf("Prompt failed: %v", err)
+	}
 
 	fmt.Print("Enter your name: ")
+	reader := bufio.NewReader(os.Stdin)
 	name, _ := reader.ReadString('\n')
 	playerName = strings.TrimSpace(name)
 
-	if choice == "1" {
+	if choice == "Create Party" {
 		conn.WriteJSON(map[string]any{
 			"type": "create_party",
 			"name": playerName,
