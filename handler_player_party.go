@@ -135,7 +135,15 @@ func handleJoinParty(player *Player, msg map[string]any) {
 
 func handleChooseMove(player *Player, msg map[string]any) {
 	move, ok := msg["move"].(string)
-	moveData, _ := msg["move_data"].(map[string]string)
+	rawMoveData, _ := msg["move_data"].(map[string]any)
+
+	moveData := make(map[string]string)
+	for k, v := range rawMoveData {
+		if strVal, ok := v.(string); ok {
+			moveData[k] = strVal
+		}
+	}
+
 	if !ok || (move != "attack" && move != "heal" && move != "hide") {
 		player.Conn.WriteJSON(map[string]any{
 			"type":  "error",
